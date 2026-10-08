@@ -102,8 +102,25 @@ struct LibraryBook: Codable, Identifiable, Hashable {
     var bookmarks: [ReadingBookmark] = []
     var voice: BookVoiceSettings = BookVoiceSettings()
     var lastOpened: Date = Date()
+    var chunks: [String]
 
-    var chunks: [String] { chapters.flatMap { TextChunker.split($0.text) } }
+    init(id: UUID, title: String, fileName: String, chapters: [BookChapter], language: String,
+         coverFileName: String? = nil, currentChunk: Int = 0, currentPosition: TimeInterval = 0,
+         bookmarks: [ReadingBookmark] = [], voice: BookVoiceSettings = BookVoiceSettings(),
+         lastOpened: Date = Date()) {
+        self.id = id
+        self.title = title
+        self.fileName = fileName
+        self.chapters = chapters
+        self.language = language
+        self.coverFileName = coverFileName
+        self.currentChunk = currentChunk
+        self.currentPosition = currentPosition
+        self.bookmarks = bookmarks
+        self.voice = voice
+        self.lastOpened = lastOpened
+        self.chunks = chapters.flatMap { TextChunker.split($0.text) }
+    }
     var percentage: Int {
         let count = max(chunks.count, 1)
         return min(100, max(0, Int((Double(currentChunk) / Double(count)) * 100)))

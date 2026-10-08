@@ -28,7 +28,7 @@ final class AppStore: ObservableObject {
         installedModelIds = Set(localModels.filter(modelManager.isInstalled).map(\.id))
         playback.$snapshot
             .removeDuplicates()
-            .throttle(for: .seconds(5), scheduler: RunLoop.main, latest: true)
+            .throttle(for: .seconds(20), scheduler: RunLoop.main, latest: true)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] snapshot in self?.consumePlayback(snapshot) }
             .store(in: &cancellables)

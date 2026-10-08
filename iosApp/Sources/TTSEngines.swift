@@ -136,7 +136,7 @@ actor EdgeTTSClient {
         request.setValue(origin, forHTTPHeaderField: "Origin")
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         let (data, response) = try await URLSession.shared.data(for: request)
-        guard (response as? HTTPURLResponse)?.statusCode ?? 500 < 300 else { throw TTSError.invalidOnlineResponse }
+        guard ((response as? HTTPURLResponse)?.statusCode ?? 500) < 300 else { throw TTSError.invalidOnlineResponse }
         let raw = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] ?? []
         let models = raw.compactMap { item -> TTSModel? in
             guard let shortName = item["ShortName"] as? String,
