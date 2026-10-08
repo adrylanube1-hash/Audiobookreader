@@ -52,7 +52,13 @@ compose.desktop {
             description = "Read books aloud with downloadable local voices"
             vendor = "audiobookreader"
             modules("java.desktop", "java.logging", "java.prefs", "jdk.crypto.ec", "jdk.unsupported")
-            targetFormats(TargetFormat.Deb, TargetFormat.AppImage, TargetFormat.Msi, TargetFormat.Exe)
+            val hostOs = System.getProperty("os.name").lowercase()
+            when {
+                hostOs.contains("linux") -> targetFormats(TargetFormat.Deb, TargetFormat.AppImage)
+                hostOs.contains("windows") -> targetFormats(TargetFormat.Msi, TargetFormat.Exe)
+                hostOs.contains("mac") -> targetFormats(TargetFormat.Dmg)
+                else -> error("Unsupported desktop packaging host: $hostOs")
+            }
             linux {
                 iconFile.set(project.file("../assets/bookreader-icon.png"))
             }
