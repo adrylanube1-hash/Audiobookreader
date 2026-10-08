@@ -1,0 +1,94 @@
+name: Mobile debug prerelease
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mobile-continuous-prerelease
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build unsigned Android debug APK
+        run: ./gradlew :app:testDebugUnitTest :app:assembleDebug
+      - name: Stage Android artifact
+        run: cp app/build/outputs/apk/debug/app-debug.apk audiobookreader-android-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mobile-android
+          path: audiobookreader-android-debug.apk
+
+  ios:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Generate shared iOS model catalogue
+        run: ./gradlew :shared:exportIosModelCatalog
+      - name: Prepare iOS resources
+        run: bash scripts/prepare-ios-resources.sh
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        working-directory: iosApp
+        run: xcodegen generate
+      - name: Build unsigned iOS Simulator app
+        working-directory: iosApp
+        run: |
+          xcodebuild -project audiobookreader.xcodeproj \
+            -scheme audiobookreader \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+      - name: Package iOS Simulator app
+        working-directory: iosApp
+        run: ditto -c -k --sequesterRsrc --keepParent build/Build/Products/Debug-iphonesimulator/audiobookreader.app ../audiobookreader-ios-simulator-debug.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mobile-ios
+          path: audiobookreader-ios-simulator-debug.zip
+
+  prerelease:
+    needs: [android, ios]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: mobile-*
+          merge-multiple: true
+      - name: Replace continuous prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete mobile-debug --cleanup-tag --yes --repo "$GITHUB_REPOSITORY" || true
+          gh release create mobile-debug \
+            audiobookreader-android-debug.apk \
+            audiobookreader-ios-simulator-debug.zip \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Mobile debug · ${GITHUB_SHA::7}" \
+            --notes "Automated unsigned debug builds for Android and the iOS Simulator. PocketTTS is intentionally excluded from iOS." \
+            --prerelease

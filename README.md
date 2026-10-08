@@ -1,6 +1,6 @@
 # audiobookreader
 
-Android PDF/EPUB/text reader with local text-to-speech and background playback.
+Android, iOS and desktop PDF/EPUB/text reader with local text-to-speech and background playback.
 
 ## Current features
 
@@ -31,6 +31,12 @@ Android PDF/EPUB/text reader with local text-to-speech and background playback.
 The project is intended for Android Studio. Signed release outputs are generated at `app/build/outputs/apk/release/` and `app/build/outputs/bundle/release/` when the ignored local signing configuration is present. The APK contains the native engine, but no TTS models or generated audio; both are managed at runtime.
 
 The [privacy policy](PRIVACY_POLICY.md) explains local processing and optional Edge TTS transmission. Maintainers should complete [the Google Play release checklist](docs/GOOGLE_PLAY_RELEASE_CHECKLIST.md) for every store submission.
+
+## iOS target
+
+`iosApp` is a native SwiftUI client for iOS 15 and newer. It provides the bookshelf, PDF/EPUB/text import, paragraph-aware reader, chunk selection/highlighting, automatic progress, bookmarks, per-book speed and voice settings, downloadable local models, Edge online voices, model licenses, download queue, generated-audio cleanup, background playback and lock-screen controls. It uses sherpa-onnx's official iOS XCFramework for Piper/VITS, Coqui, Mimic3, Kokoro, Supertonic and ZipVoice. PocketTTS is intentionally excluded from iOS.
+
+The iOS model catalogue is generated from the Android/shared catalogue with `./gradlew :shared:exportIosModelCatalog`, so the platforms do not maintain separate hard-coded lists. See [iosApp/README.md](iosApp/README.md) for the macOS build command. `.github/workflows/mobile-prerelease.yml` builds an unsigned Android debug APK and unsigned iOS Simulator app on every push to `main`, then publishes both in the `mobile-debug` prerelease. No Android or Apple signing material is read or uploaded by that workflow.
 
 ## Desktop targets
 

@@ -11,3 +11,7 @@ keystore.properties
 signing/
 *.jks
 *.keystore
+iosApp/audiobookreader.xcodeproj/
+iosApp/build/
+iosApp/Resources/model-catalog.json
+iosApp/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png

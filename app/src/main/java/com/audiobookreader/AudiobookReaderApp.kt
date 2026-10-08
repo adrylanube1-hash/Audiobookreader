@@ -356,8 +356,9 @@ private fun BookDetailScreen(book: Book, state: ReaderState, viewModel: ReaderVi
                             }
                             DropdownMenu(expanded = voiceLanguageMenuExpanded, onDismissRequest = { voiceLanguageMenuExpanded = false }) {
                                 voiceLanguages.forEach { code ->
-                                    DropdownMenuItem(
-                                        text = { Text(strings.languageLabel(code)) },
+                                    SeparatedDropdownOption(
+                                        title = strings.languageLabel(code),
+                                        selected = code == voiceLanguage,
                                         onClick = { voiceLanguage = code; voiceLanguageMenuExpanded = false },
                                     )
                                 }
@@ -377,8 +378,10 @@ private fun BookDetailScreen(book: Book, state: ReaderState, viewModel: ReaderVi
                                     )
                                 }
                                 localVoiceModels.forEach { model ->
-                                    DropdownMenuItem(
-                                        text = { Text("${model.family.label()} · ${model.name}") },
+                                    SeparatedDropdownOption(
+                                        title = model.name,
+                                        subtitle = "${model.family.label()} · ${strings.languageLabel(model.language)} · LOCAL",
+                                        selected = model.id == state.selectedModel.id,
                                         onClick = {
                                             viewModel.selectModel(model)
                                             if (model.family == ModelFamily.KOKORO) {
@@ -400,8 +403,10 @@ private fun BookDetailScreen(book: Book, state: ReaderState, viewModel: ReaderVi
                                     )
                                 }
                                 onlineVoiceModels.forEach { model ->
-                                    DropdownMenuItem(
-                                        text = { Text(model.name) },
+                                    SeparatedDropdownOption(
+                                        title = model.name.removePrefix("Edge · "),
+                                        subtitle = "Edge TTS · ${strings.languageLabel(model.language)} · ONLINE",
+                                        selected = model.id == state.selectedModel.id,
                                         onClick = { viewModel.selectModel(model); modelMenuExpanded = false },
                                     )
                                 }
@@ -461,7 +466,7 @@ private fun BookDetailScreen(book: Book, state: ReaderState, viewModel: ReaderVi
                             SupertonicVoicePicker(state, viewModel)
                         } else if (state.selectedModel.family == ModelFamily.POCKET) {
                             if (state.selectedModel.presetVoices.isNotEmpty()) {
-                                PocketVoicePicker(state, viewModel)
+                                PocketVoicePicker(state, viewModel, strings)
                             } else {
                                 Text(
                                     if (state.appLanguage == AppLanguage.SPANISH) {
@@ -925,7 +930,11 @@ private fun KokoroVoicePicker(state: ReaderState, viewModel: ReaderViewModel, st
     var expanded by remember { mutableStateOf(false) }
     val voices = ModelCatalog.kokoroVoices
     val selected = voices.firstOrNull { it.available && it.speakerId == state.bookTtsSettings.speakerId }
-    Text("Kokoro voice", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text(
+        if (state.appLanguage == AppLanguage.SPANISH) "Voz de Kokoro" else "Kokoro voice",
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
     Box {
         Button(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
             Text(selected?.let { kokoroVoiceLabel(it, strings) } ?: "Speaker ${state.bookTtsSettings.speakerId}", maxLines = 1)
@@ -933,13 +942,16 @@ private fun KokoroVoicePicker(state: ReaderState, viewModel: ReaderViewModel, st
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             voices.groupBy { it.language }.forEach { (language, group) ->
                 DropdownMenuItem(
+                    modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant),
                     text = { Text(strings.languageLabel(language), fontWeight = FontWeight.Bold) },
                     onClick = {},
                     enabled = false,
                 )
                 group.forEach { voice ->
-                    DropdownMenuItem(
-                        text = { Text(kokoroVoiceLabel(voice, strings)) },
+                    SeparatedDropdownOption(
+                        title = kokoroVoiceName(voice),
+                        subtitle = "${strings.languageLabel(voice.language)} · ${kokoroVoiceGender(voice, state.appLanguage)} · ${voice.id}",
+                        selected = voice.available && voice.speakerId == state.bookTtsSettings.speakerId,
                         onClick = {
                             if (voice.available) {
                                 viewModel.setBookSpeakerId(voice.speakerId)
@@ -959,15 +971,21 @@ private fun SupertonicVoicePicker(state: ReaderState, viewModel: ReaderViewModel
     var expanded by remember { mutableStateOf(false) }
     val selected = ModelCatalog.supertonicVoices.getOrNull(state.bookTtsSettings.speakerId)
         ?: ModelCatalog.supertonicVoices.first()
-    Text("Supertonic voice", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text(
+        if (state.appLanguage == AppLanguage.SPANISH) "Voz de Supertonic" else "Supertonic voice",
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
     Box {
         Button(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
             Text(selected, maxLines = 1)
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             ModelCatalog.supertonicVoices.forEachIndexed { index, voice ->
-                DropdownMenuItem(
-                    text = { Text(voice) },
+                SeparatedDropdownOption(
+                    title = voice,
+                    subtitle = supertonicVoiceDescription(voice, state.appLanguage),
+                    selected = index == state.bookTtsSettings.speakerId,
                     onClick = {
                         viewModel.setBookSpeakerId(index)
                         expanded = false
@@ -985,19 +1003,25 @@ private fun SupertonicVoicePicker(state: ReaderState, viewModel: ReaderViewModel
 }
 
 @Composable
-private fun PocketVoicePicker(state: ReaderState, viewModel: ReaderViewModel) {
+private fun PocketVoicePicker(state: ReaderState, viewModel: ReaderViewModel, strings: UiStrings) {
     var expanded by remember { mutableStateOf(false) }
     val voices = state.selectedModel.presetVoices
     val selected = voices.getOrNull(state.bookTtsSettings.speakerId) ?: voices.first()
-    Text("PocketTTS voice", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text(
+        if (state.appLanguage == AppLanguage.SPANISH) "Voz de PocketTTS" else "PocketTTS voice",
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
     Box {
         Button(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
             Text(pocketVoiceLabel(selected), maxLines = 1)
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             voices.forEachIndexed { index, voice ->
-                DropdownMenuItem(
-                    text = { Text(pocketVoiceLabel(voice)) },
+                SeparatedDropdownOption(
+                    title = pocketVoiceLabel(voice),
+                    subtitle = strings.languageLabel(voice.language),
+                    selected = index == state.bookTtsSettings.speakerId,
                     onClick = {
                         viewModel.setBookSpeakerId(index)
                         expanded = false
@@ -1007,17 +1031,91 @@ private fun PocketVoicePicker(state: ReaderState, viewModel: ReaderViewModel) {
         }
     }
     Text(
-        "Pre-made voice sample downloaded on first playback.",
+        if (state.appLanguage == AppLanguage.SPANISH) {
+            "La muestra de esta voz predefinida se descarga en la primera reproducción."
+        } else {
+            "The preset voice sample is downloaded on first playback."
+        },
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
 
+@Composable
+private fun SeparatedDropdownOption(
+    title: String,
+    subtitle: String? = null,
+    selected: Boolean,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
+    val background = if (selected) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f)
+    } else {
+        Color.Transparent
+    }
+    Column(Modifier.fillMaxWidth().background(background)) {
+        DropdownMenuItem(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = (if (selected) "✓  " else "") + title,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                    )
+                    subtitle?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (selected) {
+                                MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.82f)
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        )
+                    }
+                }
+            },
+            onClick = onClick,
+            enabled = enabled,
+        )
+        Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f))
+    }
+}
+
+private fun kokoroVoiceName(voice: com.audiobookreader.data.KokoroVoice): String = when (voice.id) {
+    "ef_dora" -> "Dora"
+    "em_alex" -> "Alex"
+    "em_santa" -> "Santa"
+    else -> voice.id.substringAfter('_').replace('_', ' ').replaceFirstChar { it.uppercase() }
+}
+
+private fun kokoroVoiceGender(
+    voice: com.audiobookreader.data.KokoroVoice,
+    language: AppLanguage,
+): String {
+    val female = voice.id.substringBefore('_').endsWith('f')
+    return if (language == AppLanguage.SPANISH) {
+        if (female) "Voz femenina" else "Voz masculina"
+    } else {
+        if (female) "Female voice" else "Male voice"
+    }
+}
+
+private fun supertonicVoiceDescription(voice: String, language: AppLanguage): String {
+    val female = voice.firstOrNull()?.uppercaseChar() == 'F'
+    val number = voice.drop(1)
+    return if (language == AppLanguage.SPANISH) {
+        "Voz ${if (female) "femenina" else "masculina"} $number"
+    } else {
+        "${if (female) "Female" else "Male"} voice $number"
+    }
+}
+
 private fun kokoroVoiceLabel(voice: com.audiobookreader.data.KokoroVoice, strings: UiStrings): String = when (voice.id) {
-    "ef_dora" -> "Dora (ef_dora) · ${strings.languageLabel("es")} · female"
-    "em_alex" -> "Alex (em_alex) · ${strings.languageLabel("es")} · male"
-    "em_santa" -> "Santa (em_santa) · ${strings.languageLabel("es")} · male"
-    else -> "${strings.languageLabel(voice.language)} · ${voice.id}"
+    "ef_dora", "em_alex", "em_santa" -> "${kokoroVoiceName(voice)} · ${strings.languageLabel("es")}"
+    else -> "${kokoroVoiceName(voice)} · ${strings.languageLabel(voice.language)}"
 }
 
 private fun pocketVoiceLabel(voice: PocketVoice): String =

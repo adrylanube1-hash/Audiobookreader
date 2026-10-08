@@ -1,0 +1,63 @@
+name: audiobookreader
+options:
+  bundleIdPrefix: com.audiobookreader
+  deploymentTarget:
+    iOS: "15.0"
+  xcodeVersion: "16.0"
+  createIntermediateGroups: true
+packages:
+  SherpaOnnx:
+    url: https://github.com/k2-fsa/sherpa-onnx
+    exactVersion: 1.13.8
+  ZIPFoundation:
+    url: https://github.com/weichsel/ZIPFoundation.git
+    from: 0.9.0
+  SWCompression:
+    url: https://github.com/tsolomko/SWCompression.git
+    from: 4.9.0
+targets:
+  audiobookreader:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+      - path: Resources
+        buildPhase: resources
+    info:
+      path: Info.plist
+    entitlements:
+      path: audiobookreader.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.audiobookreader
+        PRODUCT_NAME: audiobookreader
+        MARKETING_VERSION: 1.0.0
+        CURRENT_PROJECT_VERSION: 1
+        SWIFT_VERSION: 5.10
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CODE_SIGN_STYLE: Automatic
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_USER_SCRIPT_SANDBOXING: YES
+    dependencies:
+      - package: SherpaOnnx
+        product: sherpa-onnx
+      - package: ZIPFoundation
+      - package: SWCompression
+  audiobookreaderTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: Tests
+    dependencies:
+      - target: audiobookreader
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.audiobookreader.tests
+schemes:
+  audiobookreader:
+    build:
+      targets:
+        audiobookreader: all
+        audiobookreaderTests: [test]
+    test:
+      targets:
+        - audiobookreaderTests
