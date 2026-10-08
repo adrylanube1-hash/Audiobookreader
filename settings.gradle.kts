@@ -18,4 +18,6 @@ dependencyResolutionManagement {
 rootProject.name = "audiobookreader"
 include(":app")
 include(":shared")
-include(":desktop")
+if (!providers.gradleProperty("mobileOnly").map(String::toBoolean).getOrElse(false)) {
+    include(":desktop")
+}

@@ -8,6 +8,9 @@ on:
 permissions:
   contents: write
 
+env:
+  GRADLE_PROJECT_mobileOnly: "true"
+
 concurrency:
   group: mobile-continuous-prerelease
   cancel-in-progress: true
